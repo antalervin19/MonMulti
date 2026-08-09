@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+package MonMulti.Networking.Proto;
+
+message PlayerTransform {
+	uint64 steam_id = 1;
+
+	float pos_X = 2;
+	float pos_y = 3;
+	float pos_z = 4;
+
+	float rot_X = 5;
+	float rot_y = 6;
+	float rot_z = 7;
+	float rot_w = 8;
+}

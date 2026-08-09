@@ -1,0 +1,6 @@
+<project outputDir="Obfuscated" baseDir="bin\Release\net6.0" xmlns="http://confuser.codeplex.com">
+    <rule preset="minimum" pattern="true">
+        <protection id="rename" />
+    </rule>
+    <module path="MonMulti.dll" />
+</project>
