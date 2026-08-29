@@ -337,6 +337,7 @@
 		<Compile Include="Networking\TimeSync.cs" />
 		<Compile Include="Networking\VehicleRegistry.cs" />
 		<Compile Include="Networking\VehicleSync.cs" />
+		<Compile Include="Notification\NotificationManager.cs" />
 		<Compile Include="Patches.cs" />
 		<Compile Include="Steam.cs" />
 		<Content Include="Directory.Build.props" />

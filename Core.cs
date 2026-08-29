@@ -6,6 +6,7 @@ using UnityEngine.UI;
 using TMPro;
 using System.Collections;
 using Steamworks;
+using MonMulti.Notification;
 
 [assembly: MelonInfo(typeof(MonMulti.Core), "MonMulti", "1.0.0", "antalervin19", null)]
 [assembly: MelonGame("Santa Goat", "Mon Bazou")]
@@ -15,6 +16,7 @@ namespace MonMulti
     public class Core : MelonMod
     {
         public static MelonLogger.Instance Logger;
+        private readonly MonMulti.Notification.NotificationManager _notifications = new();
 
         private const float TransformSyncInterval = 0.05f;
         private float transformSyncTimer;
@@ -27,6 +29,11 @@ namespace MonMulti
             SceneManager.sceneLoaded += OnSceneLoaded;
             Steam.Initialize();
             Patches.Initialize();
+        }
+
+        public override void OnGUI()
+        {
+            _notifications.OnGUI();
         }
 
         public override void OnUpdate()
@@ -99,6 +106,10 @@ namespace MonMulti
             if (scene.name == "MainMenu")
             {
                 MelonCoroutines.Start(ModifyMenuDelayed());
+                _notifications.NewNotification(
+                    "MonMulti",
+                    "Mod Initialized Successfully!"
+                );
             }
         }
 
