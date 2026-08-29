@@ -2,6 +2,12 @@
 using MelonLoader;
 using MonMulti.Networking;
 using NWH.VehiclePhysics2;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Reflection;
+using System.Reflection.Emit;
+using UniStorm;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -74,6 +80,45 @@ namespace MonMulti
                     VehicleSync.OnLocalPlayerEnteredVehicle(__instance);
                 else
                     VehicleSync.OnLocalPlayerExitedVehicle(__instance);
+            }
+        }
+
+        [HarmonyPatch(typeof(Gameplay))]
+        [HarmonyPatch("Death")]
+        [HarmonyPatch(MethodType.Enumerator)]
+        class DeathPatch
+        {
+            static MethodInfo MultiplayerActiveGetter = AccessTools.PropertyGetter(typeof(Steam), nameof(Steam.GetState));
+            static MethodInfo SkipIfTrue = AccessTools.Method(typeof(DeathPatch), nameof(SkipTimeAdvanceIfMultiplayerDeath));
+
+            static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
+            {
+                var codes = instructions.ToList();
+                var addOneSecond = AccessTools.Method(typeof(UniStormSystem), "AddOneSecond");
+
+                int i = 0;
+                while (i < codes.Count)
+                {
+                    var code = codes[i];
+
+                    if (code.Calls(addOneSecond))
+                    {
+                        yield return new CodeInstruction(OpCodes.Call, SkipIfTrue);
+                        i++;
+                        continue;
+                    }
+
+                    yield return code;
+                    i++;
+                }
+            }
+
+            public static void SkipTimeAdvanceIfMultiplayerDeath(UniStormSystem system)
+            {
+                if (Steam.GetState())
+                    return;
+
+                system.AddOneSecond();
             }
         }
     }

@@ -16,7 +16,7 @@ namespace MonMulti
     public class Core : MelonMod
     {
         public static MelonLogger.Instance Logger;
-        private readonly MonMulti.Notification.NotificationManager _notifications = new();
+        private static MonMulti.Notification.NotificationManager _notifications = new();
 
         private const float TransformSyncInterval = 0.05f;
         private float transformSyncTimer;
@@ -181,6 +181,11 @@ namespace MonMulti
                     break;
                 }
             }
+        }
+
+        public static void Notify(string title, string message)
+        {
+            _notifications.NewNotification(title, message);
         }
     }
 }

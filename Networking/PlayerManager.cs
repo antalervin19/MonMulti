@@ -57,6 +57,9 @@ namespace MonMulti.Networking
             if (!players.TryGetValue(id.m_SteamID, out GameObject remote) || remote == null)
                 return;
 
+            if (remote.transform.parent != null)
+                return;
+
             remote.transform.SetPositionAndRotation(position, rotation * RotationOffset);
         }
 
@@ -73,6 +76,9 @@ namespace MonMulti.Networking
 
         public static void SetPlayerVehicleParent(CSteamID id, Transform vehicleTransform)
         {
+            if (vehicleTransform == null)
+                return;
+
             if (!players.TryGetValue(id.m_SteamID, out GameObject remote) || remote == null)
                 return;
 
@@ -109,7 +115,10 @@ namespace MonMulti.Networking
             if (!players.TryGetValue(id.m_SteamID, out GameObject remote) || remote == null)
                 return;
 
-            remote.transform.SetParent(null, true);
+            if (remote.transform.parent != null)
+            {
+                remote.transform.SetParent(null, true);
+            }
         }
 
         public static void SpawnPlayer(CSteamID id)

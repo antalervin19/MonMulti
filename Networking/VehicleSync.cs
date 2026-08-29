@@ -28,6 +28,8 @@ namespace MonMulti.Networking
 
         public static bool SuppressInputEvents { get; private set; }
 
+        private static bool applyingOwnership;
+
         private static readonly Dictionary<byte, TrackedVehicle> tracked = new();
         private static float syncTimer;
         private const float SyncInterval = 0.05f;
@@ -36,6 +38,8 @@ namespace MonMulti.Networking
         private const float RotationLerpRate = 15f;
 
         private const float SnapDistance = 8f;
+
+        private const float PositionExtrapolation = 1f;
 
         public static void Initialize()
         {
@@ -108,6 +112,8 @@ namespace MonMulti.Networking
 
                 Core.Logger.Msg($"VehicleSync: refreshed wheel colliders for '{entry.Config.ScenePath}' after regaining authority");
             }
+
+            rb.interpolation = weAreAuthority ? RigidbodyInterpolation.None : RigidbodyInterpolation.Interpolate;
         }
 
         public static void Update()
@@ -159,13 +165,15 @@ namespace MonMulti.Networking
                 Vector3 currentPos = rb != null ? rb.position : t.position;
                 Quaternion currentRot = rb != null ? rb.rotation : t.rotation;
 
+                Vector3 extrapolatedTarget = entry.TargetPosition + entry.TargetVelocity * SyncInterval * PositionExtrapolation;
+
                 float posT = 1f - Mathf.Exp(-PositionLerpRate * Time.deltaTime);
                 float rotT = 1f - Mathf.Exp(-RotationLerpRate * Time.deltaTime);
 
                 Vector3 newPos;
                 Quaternion newRot;
 
-                if (Vector3.Distance(currentPos, entry.TargetPosition) > SnapDistance)
+                if (Vector3.Distance(currentPos, extrapolatedTarget) > SnapDistance)
                 {
                     newPos = entry.TargetPosition;
                     newRot = entry.TargetRotation;
@@ -173,7 +181,7 @@ namespace MonMulti.Networking
                 }
                 else
                 {
-                    newPos = Vector3.Lerp(currentPos, entry.TargetPosition, posT);
+                    newPos = Vector3.Lerp(currentPos, extrapolatedTarget, posT);
                     newRot = Quaternion.Slerp(currentRot, entry.TargetRotation, rotT);
                 }
 
@@ -181,9 +189,6 @@ namespace MonMulti.Networking
                 {
                     rb.MovePosition(newPos);
                     rb.MoveRotation(newRot);
-
-                    if (!rb.isKinematic)
-                        rb.velocity = Vector3.Lerp(rb.velocity, entry.TargetVelocity, posT);
                 }
                 else
                 {
@@ -379,6 +384,9 @@ namespace MonMulti.Networking
 
         private static void ApplyOwnership(TrackedVehicle entry)
         {
+            if (applyingOwnership)
+                return;
+
             CSteamID self = SteamUser.GetSteamID();
 
             bool weAreAuthority = entry.Driver.HasValue
@@ -387,30 +395,42 @@ namespace MonMulti.Networking
 
             SetAuthority(entry, weAreAuthority);
 
-            if (weAreAuthority && entry.IsLocalPlayerSeated)
-            {
-                SuppressInputEvents = true;
+            applyingOwnership = true;
 
-                try
+            try
+            {
+                if (weAreAuthority && entry.IsLocalPlayerSeated)
                 {
-                    entry.Controller.SetInputToPlayer(true);
+                    SuppressInputEvents = true;
+
+                    try
+                    {
+                        entry.Controller.SetInputToPlayer(true);
+                    }
+                    finally
+                    {
+                        SuppressInputEvents = false;
+                    }
                 }
-                finally
+
+                if (entry.ParentedDriver.HasValue && entry.ParentedDriver != entry.Driver)
                 {
-                    SuppressInputEvents = false;
+                    PlayerManager.ClearPlayerVehicleParent(entry.ParentedDriver.Value);
+                    entry.ParentedDriver = null;
+                }
+
+                if (entry.Driver.HasValue && entry.Driver.Value != self && entry.ParentedDriver != entry.Driver)
+                {
+                    if (PlayerManager.GetRemotePlayerObject(entry.Driver.Value) != null)
+                    {
+                        PlayerManager.SetPlayerVehicleParent(entry.Driver.Value, entry.GameObject.transform);
+                        entry.ParentedDriver = entry.Driver;
+                    }
                 }
             }
-
-            if (entry.ParentedDriver.HasValue && entry.ParentedDriver != entry.Driver)
+            finally
             {
-                PlayerManager.ClearPlayerVehicleParent(entry.ParentedDriver.Value);
-                entry.ParentedDriver = null;
-            }
-
-            if (entry.Driver.HasValue && entry.Driver.Value != self && entry.ParentedDriver != entry.Driver)
-            {
-                PlayerManager.SetPlayerVehicleParent(entry.Driver.Value, entry.GameObject.transform);
-                entry.ParentedDriver = entry.Driver;
+                applyingOwnership = false;
             }
         }
 

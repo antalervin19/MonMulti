@@ -139,6 +139,8 @@ namespace MonMulti
 
             Core.Logger.Msg($"Lobby created! ID: {currentLobby}");
 
+            Core.Notify("Mon Multi", $"Steam Lobby Created! ID:{currentLobby}");
+
             SteamMatchmaking.SetLobbyData(currentLobby, "host", SteamUser.GetSteamID().ToString());
             SteamMatchmaking.SetLobbyData(currentLobby, "state", "loading");
             SteamMatchmaking.SetLobbyData(currentLobby, "gamemode", pendingNewGame ? "new" : "continue");
@@ -172,12 +174,12 @@ namespace MonMulti
             if (owner == SteamUser.GetSteamID())
             {
                 isHost = true;
-                Core.Logger.Msg("I am the lobby host! MU HAHAHA");
             }
             else
             {
                 isHost = false;
 
+                Core.Notify("Mon Multi", $"Joined Lobby ID:{currentLobby} | Players: {members}");
                 Core.Logger.Msg($"Connected to host: {owner}");
 
                 JoinHostGame();

@@ -364,9 +364,15 @@
 	</ItemGroup>
 
 	<Target Name="PostBuild" AfterTargets="PostBuildEvent">
-		<Exec Command="COPY &quot;$(TargetPath)&quot; &quot;$(GamePath)/Mods&quot;" />
+		<ItemGroup>
+			<_DependencyLibs Include="$(TargetDir)Google.Protobuf.dll" />
+			<_DependencyLibs Include="$(TargetDir)System.Memory.dll" />
+			<_DependencyLibs Include="$(TargetDir)System.Buffers.dll" />
+			<_DependencyLibs Include="$(TargetDir)System.Runtime.CompilerServices.Unsafe.dll" />
+			<_DependencyLibs Include="$(TargetDir)System.Numerics.Vectors.dll" />
+		</ItemGroup>
 
-		<Copy SourceFiles="$(TargetDir)Google.Protobuf.dll" DestinationFolder="$(GamePath)/Mods" />
-
+		<Copy SourceFiles="$(TargetPath)" DestinationFolder="$(GamePath)/Mods" SkipUnchangedFiles="true" />
+		<Copy SourceFiles="@(_DependencyLibs)" DestinationFolder="$(GamePath)/UserLibs" SkipUnchangedFiles="true" />
 	</Target>
 </Project>
